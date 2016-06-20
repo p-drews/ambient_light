@@ -36,9 +36,9 @@ public class AmbientDistControl {
 
                 try {
                     //Wird gebraucht, damit die Connection aufgebaut werden kann
-                    Thread.sleep(1500);
+                    Thread.sleep(3000);
                                        
-                    updateData('l');
+                    updateData('R');
                 } catch (InterruptedException ex) {
                     
                 } catch (IOException ex) {
@@ -55,6 +55,7 @@ public class AmbientDistControl {
     public static void updateData(char side) throws InterruptedException, IOException{
         // Time to Collision muss noch mit rein 
         if(side == 'l'){
+            pos = 17;
             for (int j = 0; j < 127 ; j++)
             {
                 /* Über die LEDWidth kann die zeit gesteuert werden.
@@ -69,22 +70,62 @@ public class AmbientDistControl {
                         (byte) ((char) blue)
                     };
                     
+                    //senden der position
+                    sendMessage(new byte[]{(byte) pos});
+                    //senden der RGB-Farben
+                    sendMessage(color);                    
                     //senden der Beifahrerseite
                     sendMessage(new byte[]{(byte) side});
-                    //senden der RGB-Farben
-                    sendMessage(color);
+
                     
                     //sendMessage(new byte[]{(byte) pos});
-                    Thread.sleep(80);
+                    Thread.sleep(1000);
                 }
             
             
         } else if(side == 'r'){
-                      
+            pos = 17;
+            for (int j = 0; j < 127 ; j++)
+            {
+                /* Über die LEDWidth kann die zeit gesteuert werden.
+                    127 ist die Stärker der Farbe, somit wird die Brightness 
+                    von Anfang an heruntergeregelt.
+                */
+                    red = (int) (( 1-((float)j/127))*127);
+                    green = 127 - red;
+                    color = new byte[]{
+                        (byte) ((char) red),
+                        (byte) ((char) green),
+                        (byte) ((char) blue),
+                    };
+                    
+                    //senden der position
+                    sendMessage(new byte[]{(byte) pos});
+                    //senden der RGB-Farben
+                    sendMessage(color);                    
+                    //senden der Beifahrerseite
+                    sendMessage(new byte[]{(byte) side});
+
+                    
+                    //sendMessage(new byte[]{(byte) pos});
+                    Thread.sleep(1000);
+                }
+
+        } else if (side == 'L')
+        {
+            
+        }         
+    }
+}
+
+    /*Macht keinen Sinn.....
+
+TESTING:
+            pos = 17; 
             for (int j = 0; j < 127 ; j++)
             {
                 //Ansteuerung der LEDs nahe des Aussenspiegels rechts
-                for (int i = 0; i <= LEDWidth; i++){
+                //for (int i = 0; i <= LEDWidth; i++){
                     red = (int) (( 1-((float)j/127))*127);
                     green = 127 - red;
                     color = new byte[]{
@@ -92,16 +133,18 @@ public class AmbientDistControl {
                         (byte) ((char) red),
                         (byte) ((char) blue)
                     };
-                    //senden der Beifahrerseite
-                    sendMessage(new byte[]{(byte) side});
+                    
+                    
+                    sendMessage(new byte[]{(byte) pos});
                     //senden der RGB-Farben
                     sendMessage(color);
-                }
+                    //senden der Beifahrerseite
+                    sendMessage(new byte[]{(byte) side});
+                //}
             } 
-        }         
-    }
-}
-    /*Macht keinen Sinn.....
+----------------------------------------------------------------------
+
+
 
 public static void Fahrzeug(char side, float speed, float distance, char Pattern) throws IOException{
         TestController.side = side;

@@ -14,12 +14,10 @@ Adafruit_NeoPixel strip_left = Adafruit_NeoPixel(PIXEL_COUNT_left, PIN_left, NEO
 Adafruit_NeoPixel strip_right = Adafruit_NeoPixel(PIXEL_COUNT_right, PIN_right, NEO_GRB + NEO_KHZ800);
 
 //set pointer on left strip
-Adafruit_NeoPixel *strip = &strip_left;
+Adafruit_NeoPixel *strip = &strip_right;
 
 //var declaration
 
-float brightness = 127;
-uint16_t LEDWidth = 17;
 int pos = 0;
 
 
@@ -28,22 +26,22 @@ int pos = 0;
 byte val;
 int green;
 int red;
-int blue = 0;;
+int blue = 0;
 
 enum states{
- WAITING,
- PATTERN_RIGHT,
- PATTERN_LEFT,
- SECOND_COLOR,
- SECOND_COLOR_LEFT,
- MIRROR_PAT,
- MIRROR_PAT_LEFT,
- MIRROR_PAT_LEFT_1,
- WIDTH
+ GET_POSITION,
+ GET_COLOR1,
+ GET_COLOR2,
+ GET_COLOR3,
+ GET_SIDE,
+ MIRROR_LEFT,
+ MIRROR_RIGHT,
+ GROW_LEFT,
+ GROW_RIGHT
 };
 
-int j = 0;
-states current_state = WAITING;
+
+states current_state = GET_POSITION;
 
 
 
@@ -59,8 +57,6 @@ void setup() {
 
   Serial.begin(9600);// begin serial connection
 
-  growing_right();
-
 
  
 }
@@ -70,19 +66,6 @@ void loop () {
 }
 
 
-
-//---------------------------------------------------------------------
-
-/*void spiegelPat_left(red, green, blue) {
-  strip = &strip_left;
-
-  for(int i = 0; i <= LEDWidth; i++)
-  {
-    
-    strip->setPixelColor(i,red,green,blue);
-  }
-
-}*/
 
 //--------------------------------------------------------------------
 
@@ -101,24 +84,6 @@ void growing_left(){
   }
 
 }
-
-//--------------------------------------------------------------------
-
-void spiegelPat_right() {
-  
-  strip = &strip_right;
-  
-  /*for (int j = 0 ; j < 127 ; j++){
-    for (int i = 0; i <= LEDWidth; i++) {
-      red = (int) ((1-((float)j/127))*127);
-      green = 127 - red;
-      strip->setPixelColor(i, red, green, 0 );
-    }      
-      strip->show();
-      delay(20);
-  };*/
-}
-
 
 //------------------------------------------------------------------
 
@@ -156,40 +121,103 @@ void serialEvent(){ // To check if there is any data on the Serial line
     byte val = Serial.read();
     
     switch(current_state){
-      case WAITING:
+      case GET_POSITION:
       {
         switch(val){
-          case 108:
-            current_state = PATTERN_LEFT;
+          case 17:
+          {
+            pos = val;
+            current_state = GET_COLOR1;  
             break;
-          case 114:
-            current_state = PATTERN_RIGHT;
-            break;
-          case 119:
-            current_state = WIDTH;
-            break;
+          }
           default:
-            //do nothing and wait
-            break;
+          break;
         }
         break;
       }
-      case PATTERN_RIGHT:
+      case GET_COLOR1:
       {
         red = val;
-        current_state = SECOND_COLOR;
+        current_state = GET_COLOR2;
         break;
       }
-      case SECOND_COLOR:
+      case GET_COLOR2:
       {
         green = val;
-        current_state = MIRROR_PAT;
+        current_state = GET_COLOR3;
         break;
       }
-      case MIRROR_PAT:
+      case GET_COLOR3:
       {
         blue = val;
-         
+        current_state = GET_SIDE;
+        break;
+      }
+      case GET_SIDE:
+      {
+          switch(val){
+          case 108:
+           {
+            current_state = MIRROR_LEFT;
+            
+            break;
+           }
+           case 114:
+           {
+            current_state = MIRROR_RIGHT;
+            break;
+           }
+           case 76:
+           {
+            current_state = GROW_LEFT;
+            break; 
+           }
+           case 82:
+           {
+            current_state = GROW_RIGHT;
+            break;
+           }
+        }
+        //Dieses Break verursacht 2 Farbfehler (Bei 110,17,0 bis 107,20,0) und bei
+        // (17,110,0)....
+        break;
+      }
+      case MIRROR_LEFT:
+      {
+        strip = &strip_left;
+        
+        for(int i = 0; i <= pos; i++)
+        {
+          
+          strip->setPixelColor(i,red,green,blue);
+        }
+        current_state = GET_POSITION;
+        break;
+      }
+      case MIRROR_RIGHT:
+      {
+        strip = &strip_right;
+        
+        for(int i = 0; i <= pos; i++)
+        {
+          
+          strip->setPixelColor(i,red,green,blue);
+        }
+        current_state=GET_POSITION;
+        break;
+      }
+      case GROW_LEFT:
+      {
+        break;
+      }
+      case GROW_RIGHT:
+      {
+        break;
+      }
+    }
+  }
+}
+/*         
         strip = &strip_right;
 
         for(int i = 0; i <= LEDWidth; i++)
