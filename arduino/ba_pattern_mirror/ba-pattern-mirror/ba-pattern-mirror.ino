@@ -65,45 +65,6 @@ void loop () {
   strip->show();
 }
 
-
-
-//--------------------------------------------------------------------
-
-void growing_left() {
-  strip = &strip_left;
-  for (int i = 0; i < strip->numPixels(); i++) {
-    for (int j = 0 ; j <= i ; j++) {
-
-      green = (int)((1 - ((float)(i) / 53)) * 85);
-      red = 85 - green;
-      strip->setPixelColor(j, red, green, 0 );
-    }
-
-    strip_left.show();
-    delay(50);
-  }
-
-}
-
-//------------------------------------------------------------------
-
-
-void growing_right() {
-
-  strip = &strip_right;
-  for (int i = 0; i < strip->numPixels(); i++) {
-    for (int j = 0 ; j <= i ; j++) {
-
-      red = (int)((1 - ((float)(i) / 53)) * 85);
-      green = 85 - red;
-      strip->setPixelColor(j, red, green, 0 );
-    }
-
-    strip->show();
-    delay(50);
-  }
-}
-
 //-----------------------------------------------------------------
 void setOff() {
   for (uint16_t i = 0; i < strip->numPixels(); i++) {
@@ -152,46 +113,43 @@ void serialEvent() { // To check if there is any data on the Serial line
       case GET_SIDE:
         {
           switch (val) {
+            // char l was sent
             case 108:
               {
                 current_state = MIRROR_LEFT;
 
                 break;
               }
+            // char r was sent
             case 114:
               {
                 current_state = MIRROR_RIGHT;
                 break;
               }
+              // char L was sent
             case 76:
               {
                 current_state = GROW_LEFT;
                 break;
               }
             case 82:
+            // char R was sent
               {
                 current_state = GROW_RIGHT;
                 break;
               }
+            case 0:
+            {
+              setOff();
+              current_state = GET_COLOR1;
+            }
           }
           break;
         }
       case MIRROR_LEFT:
         {
           strip = &strip_left;
-          Serial.println("wrong");
-          for (int i = 0; i <= pos; i++)
-          {
-
-            strip->setPixelColor(i, red, green, blue);
-          }
-          current_state = GET_COLOR1;
-          break;
-        }
-      case MIRROR_RIGHT:
-        {
-          strip = &strip_right;
-          Serial.println("wrong");
+          
           for (int i = 0; i <= pos; i++)
           {
 
@@ -209,90 +167,47 @@ void serialEvent() { // To check if there is any data on the Serial line
           {
             strip->setPixelColor(i, red, green, blue);
           }
+          for(int j = pos; j > strip->numPixels() ; j++){
+            strip->setPixelColor(j,0,0,0);
+          }
           current_state = GET_COLOR1;
           break;
 
 
         }
+        case MIRROR_RIGHT:
+        {
+
+          strip = &strip_right;
+
+          for (int i = 0; i <= pos; i++)
+          {
+            strip->setPixelColor(i, red, green, blue);
+          }
+          current_state = GET_COLOR1;
+          break;
+
+
+        }
+
       case GROW_RIGHT:
         {
 
           strip = &strip_right;
-          //TODO: die angekommende 53 umdrehen, wieder von 1 - 53 gezählt wird.
-
-          for (int i = 0; i <= pos; i++)
+          for (int i = 0; i <= strip->numPixels(); i++)
           {
+            if(i <= pos){
+              strip->setPixelColor(i, red, green, blue);
+            } else if (i > pos) {
+              strip->setPixelColor(i, 0,0,0);
+            }
+          }          
 
-            strip->setPixelColor(i, red, green, blue);
-
-          }
           current_state = GET_COLOR1;
           break;
         }
     }
   }
 }
-/*
-        strip = &strip_right;
 
-        for(int i = 0; i <= LEDWidth; i++)
-        {
-
-          strip->setPixelColor(i,red,green,blue);
-        }
-        current_state=WAITING;
-        break;
-
-      }
-
-
-
-
-  //------------------------------PATTERN_LEFT---------------------------
-
-      case PATTERN_LEFT:
-      {
-        red = val;
-        current_state = SECOND_COLOR_LEFT;
-        break;
-      }
-      case SECOND_COLOR_LEFT:
-      {
-        green = val;
-        current_state = MIRROR_PAT_LEFT;
-        break;
-      }
-      case MIRROR_PAT_LEFT:
-      {
-        blue = val;
-      }
-      case MIRROR_PAT_LEFT_1:
-      {
-        strip = &strip_left;
-        pos = val;
-        for(int i = 0; i <= pos; i++)
-        {
-
-          strip->setPixelColor(i,red,green,blue);
-        }
-        current_state=WAITING;
-        break;
-      }
-      break;
-    }
-  }
-  }
-
-
-  /* spiegelPat(){
-     for (int j = 0 ; j < 127 ; j++){
-    for (int i = 0; i <= ledWidth; i++) {
-        green = (int) ((1-((float)j/127))*127);
-        red = 127 - green;
-        strip->setPixelColor(i, red, green, 0 );
-    }
-      strip->show();
-      delay(20);
-  };
-*/
 

@@ -4,6 +4,7 @@ import Helper.Conversions;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import sun.management.jmxremote.ConnectorBootstrap;
 
 /**
  *
@@ -20,13 +21,14 @@ public class AmbientDistControl {
             public void run() {
 
                 try {
+                    //Wird gebraucht, damit die Connection aufgebaut werden kann
+                    Thread.sleep(1500);
                     AmbientDistControl control = new AmbientDistControl();
                     LEDConnector connector = new LEDConnector();
                     connector.initialize();
-                    //Wird gebraucht, damit die Connection aufgebaut werden kann
-                    Thread.sleep(1500);
 
                     System.out.println("Started");
+                    Thread.sleep(1500);
                     control.simulateSimulatorInputInLoop(connector);
 
                     //control.updateData(connector, 'R');
@@ -64,7 +66,7 @@ public class AmbientDistControl {
         //Init LED Strip Data
         int maxLED = 53;
         int maxBrightness = 127;
-        
+
         float relDist;
 
         byte pos = 0;
@@ -80,29 +82,33 @@ public class AmbientDistControl {
             return;
         }
 
-// Time to Collision muss noch mit rein
+// Ausgeklammer, Quadratfunktionen
         switch (side) {
             case 'l':
                 pos = 17;
-                green = (int) ((1 - relDist) * maxBrightness);
-                red = maxBrightness - green;
-                break;
-            case 'L':
-                pos = (byte) ((1 - relDist) * maxLED);
-                green = (int) ((1 - relDist) * maxBrightness);
-                red = maxBrightness - green;
-                if (pos == 0) {
-                    return;
-                }
-                break;                
-            case 'r':
-                pos = 17;
+                //red = (int) (Math.pow((1 - relDist),2) * maxBrightness);
                 red = (int) ((1 - relDist) * maxBrightness);
                 green = maxBrightness - red;
                 break;
-            case 'R':
+            case 'L':
                 pos = (byte) ((1 - relDist) * maxLED);
+                //red = (int) (Math.pow((1 - relDist),2) * maxBrightness);
                 red = (int) ((1 - relDist) * maxBrightness);
+                green = maxBrightness - red;
+                if (pos == 0) {
+                    return;
+                }
+                break;
+            case 'r':
+                pos = 17;
+                //red = (int) (Math.pow((1 - relDist),2) * maxBrightness);
+                red = (int) ((1 - relDist) * maxBrightness);
+                green = maxBrightness - red + 1;
+                break;
+            case 'R':
+                pos = (byte) ((relDist) * maxLED);
+                red = (int) (Math.pow((relDist), 2) * maxBrightness);
+                //red = (int) ((relDist) * maxBrightness);
                 green = maxBrightness - red;
                 if (pos == 0) {
                     return;
@@ -114,8 +120,8 @@ public class AmbientDistControl {
 
         byte[] data = new byte[]{
             (byte) ((char) blue),
-            (byte) ((char) green),
-            (byte) ((char) red), // color
+            (byte) ((char) red),
+            (byte) ((char) green), // color
             (byte) pos, // 
             (byte) side // side
         };
@@ -128,7 +134,7 @@ public class AmbientDistControl {
 
         //Simulator Data        
         float distFrontLeft, distFront, distFrontRight;
-        float distRearLeft, distRear, distRearRight;
+        float distRear, distRearRight, distMax; //distRearLeft
         float speedFrontLeft, speedFront, speedFrontRight;
         float speedRearLeft, speedRear, speedRearRight;
         boolean indicatorLeft, indicatorRight;
@@ -141,13 +147,15 @@ public class AmbientDistControl {
         ownSpeed = ownSpeedKmh / 3.6f;
         speedRearLeft = 120 / 3.6f;
         speedFront = 80 / 3.6f;
-        distRearLeft = 150;
+        //distRearLeft = 150;
         distRearRight = 0;
         speedRearRight = 80 / 3.6f;
+        distMax = 250;
 
         // loop, 
         // TODO: setOff() implementieren, damit nach dem Pattern das Licht ausgeht
-        /*while (true) {
+        for (float distRearLeft = distMax; distRearLeft >= 0; distRearLeft -= (float) (0.1 * (speedRearLeft - ownSpeed))) {
+
             try {
 
                 float ttcRearLeft = distRearLeft / (speedRearLeft - ownSpeed);
@@ -160,10 +168,10 @@ public class AmbientDistControl {
                     Logger.getLogger(AmbientDistControl.class.getName()).log(Level.SEVERE, null, ex);
                 }
 
-                distRearLeft -= 0.1 * (speedRearLeft - ownSpeed);
-
+                //distRearLeft -= 0.1 * (speedRearLeft - ownSpeed);
                 if (distRearLeft <= 0) {
-                    distRearLeft = 150;
+                    //distRearLeft = 150;
+                    setOff(connector);
                 }
 
                 Thread.sleep(100); // ~10Hz update rate
@@ -171,28 +179,51 @@ public class AmbientDistControl {
             } catch (InterruptedException ex) {
                 Logger.getLogger(AmbientDistControl.class.getName()).log(Level.SEVERE, null, ex);
             }
-        }*/
-        while (true) {
+        }
+        /*for (distRearRight = 0; distRearRight <= distMax; distRearRight += (float) (0.1 * (speedRearLeft - ownSpeed))) {
             try {
 
                 updateData(connector, 'R', distRearRight, ownSpeedKmh);
 
-                distRearRight += 0.1 * (ownSpeed - speedRearRight);
+                //distRearRight += 0.1 * (ownSpeed - speedRearRight);
 
-                if (distRearRight >= 100) {
-                    distRearRight = 0;
+                /*if (distRearRight >= 100) {
+                    //distRearRight = 0;
+                    setOff(connector);
                 }
                 Thread.sleep(100); // ~10Hz update rate
-                
+
+            } catch (InterruptedException ex) {
+                Logger.getLogger(AmbientDistControl.class.getName()).log(Level.SEVERE, null, ex);
+            }*/
+        /*
+        for (distRearRight = 0; distRearRight <= 100; distRearRight += (float) (0.1 * (speedRearLeft - ownSpeed))) {
+            try {
+
+                updateData(connector, 'R', distRearRight, ownSpeedKmh);
+
+                //distRearRight += 0.1 * (ownSpeed - speedRearRight);
+
+                /*if (distRearRight >= 100) {
+                    //distRearRight = 0;
+                    setOff(connector);
+                }
+                Thread.sleep(100); // ~10Hz update rate
+
             } catch (InterruptedException ex) {
                 Logger.getLogger(AmbientDistControl.class.getName()).log(Level.SEVERE, null, ex);
             }
-            
-        }
 
+        }*/
+    }
+
+    @SuppressWarnings("empty-statement")
+    public void setOff(LEDConnector connector) throws IOException {
+        byte[] data = new byte[]{0, 0, 0, 0, 0};
+        connector.sendMessage(data);
     }
 }
 
 /* Für später:
- setPattern, Position und Klasse für die Fahrzeuge erstellen
+ setPattern,
  */
